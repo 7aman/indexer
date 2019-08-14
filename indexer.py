@@ -14,11 +14,25 @@ def get_soup(url):
 def get_links(soup):
     return soup.select('a')
 
-def get_full(url, link):
-    if link['href'][0] == '/':
-        url.split('/')
+def get_info(url, link):
+    '''
+        return full_url, category
+        cats are: subfolder, parent, outsite, file, query
+    '''
+    href = link['href']
+    o = urlparse(href)
+    if o.scheme and o.netloc:
+        return href, 'outsite'
+    elif o.query:
+        return url + href, 'query'
+    elif href[0] == '/':
+        b = urlparse(url)
+        return f'{b.scheme}://{b.netloc}{href}', 'parent'
+    elif href[-1] == '/':
+        return url + href, 'subfolder'
     else:
-        return url + link['href']
+        return url + href, 'file'
+
 def is_folder(link):
     if link['href'][-1] == '/':
         if link['href'][0] != '/':
@@ -35,12 +49,4 @@ soup = get_soup(url)
 links = get_links(soup)
 
 for link in links:
-    if is_folder(link):
-        print('folder:')
-        print(url + link['href'])
-    elif is_file(url + link['href']):
-        print('file:')
-        print(url + link['href'])
-    else:
-        print('neither:')
-        print(url + link['href'])
+    print(get_full(url, link))
