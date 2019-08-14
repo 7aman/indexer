@@ -94,8 +94,7 @@ def get_files(url, db):
                     'hsize': human_readable(headers['Content-Length'])
                 }
             )
-        print('.', end='', flush=True)
-    print()
+            print('.', end='', flush=True)
     return db
 
 
@@ -113,7 +112,6 @@ def save_links(db):
 def save4aria(db):
     url = db['root']
     root = Path('.').joinpath('root')
-    root.mkdir(parents=True, exist_ok=True)
     files = sorted(db['files'], key=lambda x: x['url'])
     with open('aria.list', 'w') as txtfile:
         for file in files:
@@ -129,7 +127,7 @@ def save4aria(db):
 def print_info(db):
     sizes = [int(item['size']) for item in db['files']]
     total_size = human_readable(sum(sizes))
-    print(f'total number of files: {len(sizes)}')    
+    print(f'Total number of files: {len(sizes)}')
     print(f'Estimated total size:  {total_size}')
     print(f'Largest file size:     {human_readable(max(sizes))}')
     print()
@@ -139,17 +137,16 @@ def print_info(db):
 def main():
     db = dict()
     url = sys.argv[1]
-    db = {
-        'root': url,
-        'files': []
-    }
+    if not url[-1] == '/':
+        url += '/'
+    db = {'root': url, 'files': []}
     try:
         db = get_files(url, db)
     except Exception as e:
         print(e)
         print('terminated with error!')
-        pass
-
+    finally:
+        print()
     save_as_json(db)
     save_links(db)
     save4aria(db)
