@@ -86,7 +86,7 @@ def get_files(url, db):
             get_files(full, db)
         elif cat == 'other':
             headers = get_headers(full)
-            db.append(
+            db['files'].append(
                 {
                     'url': full,
                     'type': headers['Content-Type'],
@@ -98,15 +98,17 @@ def get_files(url, db):
     print()
     return db
 
-db = list()
+db = dict()
+db['root'] = url
+db['files'] = list()
 try:
     db = get_files(url, db)
 except Exception as e:
     print(e)
     print('terminated with error!')
     pass
-links = [item['url']+'\n' for item in db]
-print(human_readable(sum([int(item['size']) for item in db])))
+links = [item['url']+'\n' for item in db['files']]
+print(human_readable(sum([int(item['size']) for item in db['files']])))
 with open('db.json', 'w') as dbjson:
     json.dump(db, dbjson, indent=2)
 with open('links.txt', 'w') as textfile:
