@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-
+import sys
 import json
 from urllib.parse import urlparse
 from time import sleep
+from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
-from options import url, root
+
+__version__ = '0.0.1'
 
 
 session = requests.Session()
@@ -17,6 +19,7 @@ def human_readable(size):
         if size < 1024.0:
             return "{:03.2f} {}B".format(size, unit)
         size = size / 1024.0
+
 
 def get_links(url):
     MAXDELAY = 32
@@ -35,6 +38,7 @@ def get_links(url):
     soup = BeautifulSoup(page.text, 'html.parser')
     return {a['href'] for a in soup.select('a')}
 
+
 def get_headers(url):
     MAXDELAY = 32
     gotit = False
@@ -51,8 +55,9 @@ def get_headers(url):
     if not headers.__contains__('Content-Type'):
         headers['Content-Type'] = 'Null'
     if not headers.__contains__('Content-Length'):
-            headers['Content-Length'] = '0'
+        headers['Content-Length'] = '0'
     return headers
+
 
 def full_url_and_cat(url, href):
     '''
@@ -72,11 +77,6 @@ def full_url_and_cat(url, href):
     else:
         return url + href, 'other'
 
-def is_file(url):
-    headers = get_headers(url)
-    if 'text/html' in headers['Content-Type']:
-        return False
-    return True
 
 def get_files(url, db):
     links = get_links(url)
@@ -98,20 +98,64 @@ def get_files(url, db):
     print()
     return db
 
-db = dict()
-db['root'] = url
-db['files'] = list()
-try:
-    db = get_files(url, db)
-except Exception as e:
-    print(e)
-    print('terminated with error!')
-    pass
-links = [item['url']+'\n' for item in db['files']]
-print(human_readable(sum([int(item['size']) for item in db['files']])))
-with open('db.json', 'w') as dbjson:
-    json.dump(db, dbjson, indent=2)
-with open('links.txt', 'w') as textfile:
-    textfile.writelines(links)
 
-print('\a')
+def save_as_json(db):
+    with open('db.json', 'w') as dbjson:
+        json.dump(db, dbjson, indent=2)
+
+
+def save_links(db):
+    with open('links.txt', 'w') as textfile:
+        links = [item['url']+'\n' for item in db['files']]
+        textfile.writelines(links)
+
+
+def save4aria(db):
+    url = db['root']
+    root = Path('.').joinpath('root')
+    root.mkdir(parents=True, exist_ok=True)
+    files = sorted(db['files'], key=lambda x: x['url'])
+    with open('aria.list', 'w') as txtfile:
+        for file in files:
+            path_parts = file['url'].replace(url, '')  # remove base url
+            path_parts = path_parts.replace('%20', ' ').split('/')
+            path = root.joinpath(*path_parts)
+            txtfile.write(f"{file['url']}\n")
+            txtfile.write(f'  dir={path.parent}\n')
+            txtfile.write(f'  out={path.name}\n')
+            txtfile.write(f"# size: {file['hsize']}\n\n")
+
+
+def print_info(db):
+    sizes = [int(item['size']) for item in db['files']]
+    total_size = human_readable(sum(sizes))
+    print(f'total number of files: {len(sizes)}')    
+    print(f'Estimated total size:  {total_size}')
+    print(f'Largest file size:     {human_readable(max(sizes))}')
+    print()
+    print('\nUse "aria2c -i aria.list -c -j1 --file-allocation=none" to download files.\n')
+
+
+def main():
+    db = dict()
+    url = sys.argv[1]
+    db = {
+        'root': url,
+        'files': []
+    }
+    try:
+        db = get_files(url, db)
+    except Exception as e:
+        print(e)
+        print('terminated with error!')
+        pass
+
+    save_as_json(db)
+    save_links(db)
+    save4aria(db)
+    print_info(db)
+
+
+if __name__ == "__main__":
+    main()
+    print('\a')
