@@ -6,20 +6,17 @@ from bs4 import BeautifulSoup
 from options import url, root
 
 
-def get_soup(url):
+def get_links(url):
     page = requests.get(url)
     page.encoding = 'utf-8'
-    return BeautifulSoup(page.text, 'html.parser')
+    soup = BeautifulSoup(page.text, 'html.parser')
+    return {a['href'] for a in soup.select('a')}
 
-def get_links(soup):
-    return soup.select('a')
-
-def get_info(url, link):
+def full_url_and_cat(url, href):
     '''
         return full_url, category
-        cats are: subfolder, parent, outsite, file, query
+        cats are: subfolder, parent, outsite, query, other
     '''
-    href = link['href']
     o = urlparse(href)
     if o.scheme and o.netloc:
         return href, 'outsite'
@@ -31,22 +28,22 @@ def get_info(url, link):
     elif href[-1] == '/':
         return url + href, 'subfolder'
     else:
-        return url + href, 'file'
-
-def is_folder(link):
-    if link['href'][-1] == '/':
-        if link['href'][0] != '/':
-            return True
-    else:
-        return False
+        return url + href, 'other'
 
 def is_file(url):
     if 'text/html' in requests.head(url).headers['Content-Type']:
         return False
     return True
-    
-soup = get_soup(url)
-links = get_links(soup)
 
-for link in links:
-    print(get_full(url, link))
+def get_files(url, textfile):
+    links = get_links(url)
+    for link in links:
+        full, cat = full_url_and_cat(url, link)
+        if cat == 'subfolder':
+            get_files(full, textfile)
+        elif cat == 'other':
+            print(full)
+            textfile.write(full+'\n')
+
+with open('links.txt', 'w') as textfile:
+    get_files(url, textfile)
