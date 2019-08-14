@@ -2,6 +2,7 @@
 
 import json
 from urllib.parse import urlparse
+from time import sleep
 import requests
 from bs4 import BeautifulSoup
 from options import url, root
@@ -14,10 +15,38 @@ def human_readable(size):
         size = size / 1024.0
 
 def get_links(url):
-    page = requests.get(url)
+    MAXDELAY = 32
+    gotit = False
+    delay = 1
+    while not gotit:
+        try:
+            page = requests.get(url)
+            gotit = True
+        except:
+            print('sleeping...')
+            sleep(delay)
+            delay = max(MAXDELAY, 2*delay)
     page.encoding = 'utf-8'
     soup = BeautifulSoup(page.text, 'html.parser')
     return {a['href'] for a in soup.select('a')}
+
+def get_headers(url):
+    MAXDELAY = 32
+    gotit = False
+    delay = 1
+    while not gotit:
+        try:
+            headers = requests.head(url).headers
+            gotit = True
+        except:
+            print('sleeping...')
+            sleep(delay)
+            delay = max(MAXDELAY, 2*delay)
+    if not headers.__contains__('Content-Type'):
+        headers['Content-Type'] = 'Null'
+    if not headers.__contains__('Content-Length'):
+            headers['Content-Type'] = '0'
+    return headers
 
 def full_url_and_cat(url, href):
     '''
@@ -38,7 +67,8 @@ def full_url_and_cat(url, href):
         return url + href, 'other'
 
 def is_file(url):
-    if 'text/html' in requests.head(url).headers['Content-Type']:
+    headers = get_headers(url)
+    if 'text/html' in headers['Content-Type']:
         return False
     return True
 
@@ -49,11 +79,7 @@ def get_files(url, db):
         if cat == 'subfolder':
             get_files(full, db)
         elif cat == 'other':
-            headers = requests.head(full).headers
-            if not headers.__contains__('Content-Type'):
-                headers['Content-Type'] = 'Null'
-            if not headers.__contains__('Content-Length'):
-                    headers['Content-Type'] = '0'
+            headers = get_headers(full)
             db.append(
                 {
                     'url': full,
@@ -67,10 +93,16 @@ def get_files(url, db):
     return db
 
 db = list()
-db = get_files(url, db)
+try:
+    db = get_files(url, db)
+except:
+    print('terminated with error!')
+    pass
 links = [item['url']+'\n' for item in db]
 print(human_readable(sum([int(item['size']) for item in db])))
 with open('db.json', 'w') as dbjson:
     json.dump(db, dbjson, indent=2)
 with open('links.txt', 'w') as textfile:
     textfile.writelines(links)
+
+print('\a')
