@@ -7,6 +7,10 @@ import requests
 from bs4 import BeautifulSoup
 from options import url, root
 
+
+session = requests.Session()
+
+
 def human_readable(size):
     size = int(size)
     for unit in ['', 'K', 'M', 'G', 'T']:
@@ -20,9 +24,10 @@ def get_links(url):
     delay = 1
     while not gotit:
         try:
-            page = requests.get(url)
+            page = session.get(url)
             gotit = True
-        except:
+        except Exception as e:
+            print(e)
             print('sleeping...')
             sleep(delay)
             delay = max(MAXDELAY, 2*delay)
@@ -36,16 +41,17 @@ def get_headers(url):
     delay = 1
     while not gotit:
         try:
-            headers = requests.head(url).headers
+            headers = session.head(url).headers
             gotit = True
-        except:
+        except Exception as e:
+            print(e)
             print('sleeping...')
             sleep(delay)
             delay = max(MAXDELAY, 2*delay)
     if not headers.__contains__('Content-Type'):
         headers['Content-Type'] = 'Null'
     if not headers.__contains__('Content-Length'):
-            headers['Content-Type'] = '0'
+            headers['Content-Length'] = '0'
     return headers
 
 def full_url_and_cat(url, href):
@@ -95,7 +101,8 @@ def get_files(url, db):
 db = list()
 try:
     db = get_files(url, db)
-except:
+except Exception as e:
+    print(e)
     print('terminated with error!')
     pass
 links = [item['url']+'\n' for item in db]
