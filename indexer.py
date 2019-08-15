@@ -30,7 +30,7 @@ def get_links(url):
             page = session.get(url)
             gotit = True
         except Exception as e:
-            print(e)
+            print(f'\n{e}')
             print('sleeping...')
             sleep(delay)
             delay = max(MAXDELAY, 2*delay)
@@ -48,7 +48,7 @@ def get_headers(url):
             headers = session.head(url).headers
             gotit = True
         except Exception as e:
-            print(e)
+            print(f'\n{e}')
             print('sleeping...')
             sleep(delay)
             delay = max(MAXDELAY, 2*delay)
@@ -143,7 +143,7 @@ def main():
     try:
         db = get_files(url, db)
     except Exception as e:
-        print(e)
+        print(f'\n{e}')
         print('terminated with error!')
     finally:
         print()
