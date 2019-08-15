@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import json
+import argparse
 from urllib.parse import urlparse
 from time import sleep
 from pathlib import Path
@@ -12,6 +13,34 @@ __version__ = '0.0.1'
 
 session = requests.Session()
 
+
+def args():
+    parser = argparse.ArgumentParser(
+        prog="indexer",
+        description='index scrapper',
+        formatter_class=argparse.RawTextHelpFormatter,
+        add_help=True
+    )
+    parser.add_argument(
+        "url",
+        help="root to search"
+    )
+    parser.add_argument(
+        "-l",
+        dest='level',
+        default=-1,
+        type=int,
+        help="how deep i must go.\n'0' means just root, etc...\n{default: -1}"
+    )
+    arguments = parser.parse_args(sys.argv[1:])
+    url = arguments.url
+    LEVEL = arguments.level
+    if LEVEL <-1:
+        LEVEL = -1
+
+    if not url[-1] == '/':
+        url += '/'
+    return url, LEVEL
 
 def human_readable(size):
     size = int(size)
@@ -78,12 +107,15 @@ def full_url_and_cat(url, href):
         return url + href, 'other'
 
 
-def get_files(url, db):
+def get_files(url, db, l, level):
     links = get_links(url)
     for link in links:
         full, cat = full_url_and_cat(url, link)
         if cat == 'subfolder':
-            get_files(full, db)
+            if level == -1 or l < level:
+                get_files(full, db, l+1, level)
+            else:
+                continue
         elif cat == 'other':
             headers = get_headers(full)
             db['files'].append(
@@ -136,12 +168,10 @@ def print_info(db):
 
 def main():
     db = dict()
-    url = sys.argv[1]
-    if not url[-1] == '/':
-        url += '/'
+    url, LEVEL = args()
     db = {'root': url, 'files': []}
     try:
-        db = get_files(url, db)
+        db = get_files(url, db, l=0, level=LEVEL)
     except Exception as e:
         print(f'\n{e}')
         print('terminated with error!')
