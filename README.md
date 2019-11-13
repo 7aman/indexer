@@ -1,8 +1,19 @@
 # indexer
 
-indexer prepares a list of files to download from an index
+## Dependencies:
+- python 3.6+
+- aria2
+
+## Clone and Usage
+
 ```shell
+git clone https://github.com/7aman/indexer
+cd indexer
+
+# indexer get a index URL and prepares a text file (aria.list) of files to download by aria2
 python3 indexer.py URL
+
+#
 aria2c -i aria.list -c -j1 --file-allocation=none
     # -c : continue
     # -j : max concurrent downloads
