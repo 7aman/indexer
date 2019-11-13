@@ -10,7 +10,7 @@
 git clone https://github.com/7aman/indexer
 cd indexer
 
-# indexer get a index URL and prepares a text file (aria.list) of files to download by aria2
+# indexer gets an index URL and creates a list of files (aria.list) from that index
 python3 indexer.py URL
 
 #
