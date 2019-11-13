@@ -8,6 +8,7 @@
 
 ```shell
 git clone https://github.com/7aman/indexer
+pip3 install -r requirements.txt
 cd indexer
 
 # indexer gets an index URL and creates a list of files (aria.list) from that index
